@@ -1,0 +1,85 @@
+version: '3.9'
+
+services:
+
+  # ── MySQL ────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: fleetos-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-root_secret}
+      MYSQL_DATABASE:      ${DB_NAME:-fleetos}
+      MYSQL_USER:          ${DB_USER:-fleetos}
+      MYSQL_PASSWORD:      ${DB_PASS:-fleetos_secret}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./fleetos-backend/src/main/resources/db/migration/V1__initial_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost","-u","root","-p${DB_ROOT_PASS:-root_secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [fleetos-net]
+
+  # ── Spring Boot Backend ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./fleetos-backend
+      dockerfile: Dockerfile
+    container_name: fleetos-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILE: ${SPRING_PROFILE:-prod}
+      DB_HOST:        db
+      DB_PORT:        3306
+      DB_NAME:        ${DB_NAME:-fleetos}
+      DB_USER:        ${DB_USER:-fleetos}
+      DB_PASS:        ${DB_PASS:-fleetos_secret}
+      JWT_SECRET:     ${JWT_SECRET}
+      JWT_EXPIRY:     ${JWT_EXPIRY:-24}
+      MAIL_HOST:      ${MAIL_HOST:-smtp.mailtrap.io}
+      MAIL_PORT:      ${MAIL_PORT:-587}
+      MAIL_USER:      ${MAIL_USER}
+      MAIL_PASS:      ${MAIL_PASS}
+      MAIL_FROM:      ${MAIL_FROM:-noreply@fleetos.io}
+      APP_BASE_URL:   ${APP_BASE_URL:-http://localhost:3000}
+      QR_OUTPUT_DIR:  /app/static/qr
+      CORS_ORIGINS:   ${CORS_ORIGINS:-http://localhost:3000}
+      LOG_LEVEL:      ${LOG_LEVEL:-INFO}
+    volumes:
+      - qr_data:/app/static/qr
+    ports:
+      - "8080:8080"
+    networks: [fleetos-net]
+    healthcheck:
+      test: ["CMD","wget","-qO-","http://localhost:8080/api/v1/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── React Frontend ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./fleetos-frontend
+      dockerfile: Dockerfile
+    container_name: fleetos-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks: [fleetos-net]
+
+volumes:
+  db_data:
+  qr_data:
+
+networks:
+  fleetos-net:
+    driver: bridge

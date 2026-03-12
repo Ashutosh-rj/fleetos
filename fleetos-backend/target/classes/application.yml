@@ -1,0 +1,88 @@
+spring:
+  application:
+    name: fleetos-backend
+  profiles:
+    active: ${SPRING_PROFILE:dev}
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:fleetos}?serverTimezone=UTC&characterEncoding=UTF-8&useSSL=${DB_SSL:false}&allowPublicKeyRetrieval=true
+    username: ${DB_USER:fleetos}
+    password: ${DB_PASS:secret}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+
+  mail:
+    host: ${MAIL_HOST:smtp.mailtrap.io}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASS:}
+    from: ${MAIL_FROM:noreply@fleetos.io}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+
+  thymeleaf:
+    cache: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html
+  error:
+    include-message: never
+    include-stacktrace: never
+
+jwt:
+  secret: ${JWT_SECRET:ZmxlZXRvc19zdXBlcl9zZWNyZXRfa2V5X2Zvcl9qd3RfMjAyNV9wcm9kdWN0aW9u}
+  expiry-hours: ${JWT_EXPIRY:24}
+
+otp:
+  expiry-minutes: ${OTP_EXPIRY:10}
+
+qr:
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+  output-dir: ${QR_OUTPUT_DIR:./static/qr}
+
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+
+app:
+  name: FleetOS
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    io.fleetos: ${LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
