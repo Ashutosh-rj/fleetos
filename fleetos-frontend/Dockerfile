@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-RUN ./node_modules/.bin/vite build
+RUN chmod +x ./node_modules/.bin/vite && ./node_modules/.bin/vite build
 
 FROM nginx:alpine
 
